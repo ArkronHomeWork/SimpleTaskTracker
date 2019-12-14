@@ -2,6 +2,7 @@ package com.github.arkronzxc.noteserver;
 
 import com.github.arkronzxc.noteserver.repository.DocRepository;
 import com.github.arkronzxc.noteserver.repository.NoteRepository;
+import com.github.arkronzxc.noteserver.repository.TaskRepository;
 
 import static spark.Spark.*;
 
@@ -9,26 +10,29 @@ public class Main {
     public static void main(String[] args) {
         port(4567);
 
+        TaskRepository taskRepository = new TaskRepository();
         DocRepository docRepository = new DocRepository();
         NoteRepository noteRepository = new NoteRepository();
 
         path("/note", () -> {
-
-            get("/", noteRepository::showAllNotes);
-            get("/:name", noteRepository::selectByName);
-            put("/:name", noteRepository::insertNote);
-            delete("/:name", noteRepository::deleteByName);
-
+            get("/", noteRepository::showAll);
+            get("/:name", noteRepository::get);
+            put("/:name", noteRepository::insert);
+            delete("/:name", noteRepository::delete);
         });
 
         path("/doc", () -> {
-            get("/", docRepository::showAllDocs);
+            get("/", docRepository::showAll);
+            post("/", docRepository::insert);
+            get("/:name", docRepository::get);
+            delete("/:name", docRepository::delete);
+        });
 
-            post("/", docRepository::saveDoc);
-
-            get("/:name", docRepository::getDoc);
-
-            delete("/:name", docRepository::deleteDoc);
+        path("/task", () -> {
+            get("/", taskRepository::showAll);
+            get("/:name", taskRepository::get);
+            put("/:name", taskRepository::insert);
+            delete("/:name", taskRepository::delete);
         });
     }
 }
