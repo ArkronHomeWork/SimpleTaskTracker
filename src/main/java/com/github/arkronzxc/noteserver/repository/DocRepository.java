@@ -107,7 +107,7 @@ public class DocRepository extends CommonRepository {
             res.status(202);
             return "";
         } else {
-            log.info("File with name: {} wasn't deleted",fileName);
+            log.info("File with name: {} wasn't deleted", fileName);
             res.status(404);
             return "File with name " + fileName + " wasn't deleted!";
         }

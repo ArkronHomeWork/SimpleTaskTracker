@@ -5,7 +5,7 @@ import org.bson.Document;
 import spark.Request;
 import spark.Response;
 
-public class NoteRepository extends CommonRepository{
+public class NoteRepository extends CommonRepository {
 
     public NoteRepository() {
         super("notes");
@@ -36,26 +36,15 @@ public class NoteRepository extends CommonRepository{
         return gson.toJson(document);
     }
 
-    @Override
-    public String delete(Request req, Response res) {
-        collection.deleteOne(Filters.eq("name", req.params(":name")));
-        res.status(201);
-        return "";
-    }
-
     private void updateByName(Request req, Response res) {
         Document setData = getDocumentByName(req.params(":name"));
         String currentText = setData.getString("text");
         currentText = currentText + "\n" + req.body();
         setData.put("name", req.params(":name"));
-        setData.put("text",  currentText);
+        setData.put("text", currentText);
         Document update = new Document();
         update.append("$set", setData);
         collection.updateOne(Filters.eq("name", req.params(":name")), update);
         res.status(202);
-    }
-
-    private Document getDocumentByName(String documentName) {
-        return collection.find(Filters.eq("name", documentName)).first();
     }
 }

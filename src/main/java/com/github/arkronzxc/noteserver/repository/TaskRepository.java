@@ -13,7 +13,7 @@ public class TaskRepository extends CommonRepository {
     @Override
     public String insert(Request req, Response res) {
         Document document = new Document();
-        if(getTaskByName(req.params(":name")) != null){
+        if (getTaskByName(req.params(":name")) != null) {
             res.status(400);
             return "You can't duplicate task's names. Such as: " + req.params(":name") + "!";
         }
@@ -27,7 +27,7 @@ public class TaskRepository extends CommonRepository {
 
     @Override
     public String get(Request req, Response res) {
-        Document document = collection.find(Filters.eq("name", req.params(":name"))).first();
+        Document document = getTaskByName(req.params(":name"));
         if (document != null) {
             document.remove("_id");
             return document.toJson();
@@ -35,13 +35,6 @@ public class TaskRepository extends CommonRepository {
             res.status(404);
             return "Task with name " + req.params(":name") + " not found!";
         }
-    }
-
-    @Override
-    public String delete(Request req, Response res) {
-        collection.deleteOne(Filters.eq("name", req.params(":name")));
-        res.status(202);
-        return "";
     }
 
     private Document getTaskByName(String documentName) {
