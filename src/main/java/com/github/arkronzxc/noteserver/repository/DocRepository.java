@@ -6,6 +6,8 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
 import org.bson.Document;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import spark.Request;
 import spark.Response;
 import spark.utils.IOUtils;
@@ -22,23 +24,36 @@ import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-public class DocRepository {
+public class DocRepository implements CommonRepository {
 
     private final MongoClient mongoClient = new MongoClient();
     private final MongoDatabase database = mongoClient.getDatabase("notedb");
     private final MongoCollection<Document> collection = database.getCollection("docs");
 
+    private final Logger log = LoggerFactory.getLogger(DocRepository.class);
     private final Gson gson = new Gson();
     private final File folder = new File("C:/tmp");
 
 
     public DocRepository() {
-        folder.mkdir();
+
+        if (!folder.mkdir()) {
+            log.info("Directory wasn't created");
+        }
+        ;
     }
 
-    public String saveDoc(Request request, Response res) throws IOException, ServletException {
+    @Override
+    public String insert(Request request, Response res) {
         request.attribute("org.eclipse.jetty.multipartConfig", new MultipartConfigElement("C:/tmp"));
-        Collection<Part> filePart = request.raw().getParts();
+        Collection<Part> filePart = null;
+        try {
+            filePart = request.raw().getParts();
+        } catch (IOException | ServletException e) {
+            res.status(400);
+            log.info("Couldn't get file from request: {}", request);
+            return "Uploading file is incorrect ";
+        }
 
         //Если файл сохранился успешно, он преобразуется в null (54 строка)
         // , если файл сохранился с ошибкой преобразуем в Exception (49, 52 строки)
@@ -57,6 +72,7 @@ public class DocRepository {
                 collection.insertOne(document);
                 outputStream.close();
             } catch (Exception e) {
+                log.warn("Can't save file {}", part);
                 return e;
             }
             return null;
@@ -70,7 +86,8 @@ public class DocRepository {
         }
     }
 
-    public String getDoc(Request req, Response res) {
+    @Override
+    public String get(Request req, Response res) {
         String filename = req.params(":name");
 
         try {
@@ -87,6 +104,7 @@ public class DocRepository {
                 response.getWriter().close();
             }
         } catch (IOException e) {
+            log.info("IOException while getting file: ", e);
             res.status(404);
             return "File with name " + filename + " wasn't found!";
         }
@@ -94,7 +112,8 @@ public class DocRepository {
         return "";
     }
 
-    public String deleteDoc(Request req, Response res) {
+    @Override
+    public String delete(Request req, Response res) {
         String fileName = req.params(":name");
         collection.deleteOne(Filters.eq("name", fileName));
         File file = new File("C:/tmp/" + fileName);
@@ -102,13 +121,15 @@ public class DocRepository {
             res.status(202);
             return "";
         } else {
+            log.info("File with name: {} wasn't deleted",fileName);
             res.status(404);
             return "File with name " + fileName + " wasn't deleted!";
         }
     }
 
+    @Override
     @SuppressWarnings("DuplicatedCode")
-    public String showAllDocs(Request req, Response res) {
+    public String showAll(Request req, Response res) {
         List<Document> documents = new ArrayList<>();
         Consumer<Document> foreach = document -> {
             document.remove("_id");

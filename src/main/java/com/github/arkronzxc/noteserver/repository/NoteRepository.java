@@ -13,14 +13,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
-public class NoteRepository {
+public class NoteRepository implements CommonRepository{
     private final MongoClient mongoClient = new MongoClient();
     private final MongoDatabase database = mongoClient.getDatabase("notedb");
     private final MongoCollection<Document> collection = database.getCollection("notes");
 
     private final Gson gson = new Gson();
 
-    public String insertNote(Request req, Response res) {
+    @Override
+    public String insert(Request req, Response res) {
         if (getDocumentByName(req.params(":name")) != null) {
             updateByName(req, res);
         } else {
@@ -33,7 +34,8 @@ public class NoteRepository {
         return "";
     }
 
-    public String selectByName(Request req, Response res) {
+    @Override
+    public String get(Request req, Response res) {
         Document document = getDocumentByName(req.params(":name"));
         if (document == null) {
             res.status(404);
@@ -43,7 +45,8 @@ public class NoteRepository {
         return gson.toJson(document);
     }
 
-    public String deleteByName(Request req, Response res) {
+    @Override
+    public String delete(Request req, Response res) {
         collection.deleteOne(Filters.eq("name", req.params(":name")));
         res.status(201);
         return "";
@@ -61,8 +64,9 @@ public class NoteRepository {
         res.status(202);
     }
 
+    @Override
     @SuppressWarnings("DuplicatedCode")
-    public String showAllNotes(Request req, Response res) {
+    public String showAll(Request req, Response res) {
         List<Document> documents = new ArrayList<>();
         Consumer<Document> foreach = document -> {
             document.remove("_id");
