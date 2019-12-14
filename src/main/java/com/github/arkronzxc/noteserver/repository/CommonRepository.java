@@ -15,11 +15,11 @@ import java.util.function.Consumer;
 
 public abstract class CommonRepository {
     final Gson gson = new Gson();
-    final MongoClient mongoClient = new MongoClient();
-    final MongoDatabase database = mongoClient.getDatabase("notedb");
     final MongoCollection<Document> collection;
 
     public CommonRepository(String collectionName) {
+        MongoClient mongoClient = new MongoClient();
+        MongoDatabase database = mongoClient.getDatabase("notedb");
         collection = database.getCollection(collectionName);
     }
 

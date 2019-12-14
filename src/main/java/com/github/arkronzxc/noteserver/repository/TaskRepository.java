@@ -1,13 +1,21 @@
 package com.github.arkronzxc.noteserver.repository;
 
+import com.github.arkronzxc.noteserver.repository.scheduler.Scheduler;
 import com.mongodb.client.model.Filters;
 import org.bson.Document;
 import spark.Request;
 import spark.Response;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Timer;
+
 public class TaskRepository extends CommonRepository {
     public TaskRepository() {
         super("tasks");
+        Timer time = new Timer();
+        Scheduler scheduler = new Scheduler(collection);
+        time.schedule(scheduler, 60000);
     }
 
     @Override
@@ -17,9 +25,19 @@ public class TaskRepository extends CommonRepository {
             res.status(400);
             return "You can't duplicate task's names. Such as: " + req.params(":name") + "!";
         }
+        String time = req.queryParamOrDefault("time", "");
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm dd-MM-yy");
+        LocalDateTime dateTime;
+        if (time.isEmpty()) {
+            dateTime = LocalDateTime.now().plusMinutes(1L);
+        } else {
+            dateTime = LocalDateTime.parse(time, formatter);
+        }
+
         document.put("name", req.params(":name"));
-        document.put("time", req.queryParamOrDefault("time", ""));
+        document.put("time", dateTime);
         document.put("text", req.body());
+
         collection.insertOne(document);
         res.status(201);
         return "";
