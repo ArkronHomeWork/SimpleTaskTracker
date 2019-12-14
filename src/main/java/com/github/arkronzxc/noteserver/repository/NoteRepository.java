@@ -1,24 +1,15 @@
 package com.github.arkronzxc.noteserver.repository;
 
-import com.google.gson.Gson;
-import com.mongodb.MongoClient;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
 import org.bson.Document;
 import spark.Request;
 import spark.Response;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.Consumer;
+public class NoteRepository extends CommonRepository{
 
-public class NoteRepository implements CommonRepository{
-    private final MongoClient mongoClient = new MongoClient();
-    private final MongoDatabase database = mongoClient.getDatabase("notedb");
-    private final MongoCollection<Document> collection = database.getCollection("notes");
-
-    private final Gson gson = new Gson();
+    public NoteRepository() {
+        super("notes");
+    }
 
     @Override
     public String insert(Request req, Response res) {
@@ -62,18 +53,6 @@ public class NoteRepository implements CommonRepository{
         update.append("$set", setData);
         collection.updateOne(Filters.eq("name", req.params(":name")), update);
         res.status(202);
-    }
-
-    @Override
-    @SuppressWarnings("DuplicatedCode")
-    public String showAll(Request req, Response res) {
-        List<Document> documents = new ArrayList<>();
-        Consumer<Document> foreach = document -> {
-            document.remove("_id");
-            documents.add(document);
-        };
-        collection.find().forEach(foreach);
-        return gson.toJson(documents);
     }
 
     private Document getDocumentByName(String documentName) {

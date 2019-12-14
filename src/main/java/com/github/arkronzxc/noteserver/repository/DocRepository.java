@@ -1,9 +1,5 @@
 package com.github.arkronzxc.noteserver.repository;
 
-import com.google.gson.Gson;
-import com.mongodb.MongoClient;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
 import org.bson.Document;
 import org.slf4j.Logger;
@@ -17,36 +13,26 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.Part;
 import java.io.*;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-public class DocRepository implements CommonRepository {
-
-    private final MongoClient mongoClient = new MongoClient();
-    private final MongoDatabase database = mongoClient.getDatabase("notedb");
-    private final MongoCollection<Document> collection = database.getCollection("docs");
-
+public class DocRepository extends CommonRepository {
     private final Logger log = LoggerFactory.getLogger(DocRepository.class);
-    private final Gson gson = new Gson();
-    private final File folder = new File("C:/tmp");
-
 
     public DocRepository() {
-
+        super("docs");
+        File folder = new File("C:/tmp");
         if (!folder.mkdir()) {
             log.info("Directory wasn't created");
         }
-        ;
     }
 
     @Override
     public String insert(Request request, Response res) {
         request.attribute("org.eclipse.jetty.multipartConfig", new MultipartConfigElement("C:/tmp"));
-        Collection<Part> filePart = null;
+        Collection<Part> filePart;
         try {
             filePart = request.raw().getParts();
         } catch (IOException | ServletException e) {
@@ -125,17 +111,5 @@ public class DocRepository implements CommonRepository {
             res.status(404);
             return "File with name " + fileName + " wasn't deleted!";
         }
-    }
-
-    @Override
-    @SuppressWarnings("DuplicatedCode")
-    public String showAll(Request req, Response res) {
-        List<Document> documents = new ArrayList<>();
-        Consumer<Document> foreach = document -> {
-            document.remove("_id");
-            documents.add(document);
-        };
-        collection.find().forEach(foreach);
-        return gson.toJson(documents);
     }
 }
