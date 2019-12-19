@@ -29,7 +29,7 @@ public abstract class CommonRepository {
             document.remove("_id");
             documents.add(document);
         };
-        collection.find().forEach(foreach);
+        collection.find(Filters.eq("user_id", req.headers("Authorization"))).forEach(foreach);
         return gson.toJson(documents);
     }
 
@@ -38,12 +38,14 @@ public abstract class CommonRepository {
     public abstract String get(Request req, Response res);
 
     public String delete(Request req, Response res) {
-        collection.deleteOne(Filters.eq("name", req.params(":name")));
+        collection.deleteOne(Filters.and(Filters.eq("name", req.params(":name")),
+                Filters.eq("user_id", req.headers("Authorization"))));
         res.status(202);
         return "";
     }
 
-    Document getDocumentByName(String documentName) {
-        return collection.find(Filters.eq("name", documentName)).first();
+    Document getDocumentByName(String documentName, String userId) {
+        return collection.find(Filters.and(Filters.eq("name", documentName),
+                Filters.eq("user_id", userId))).first();
     }
 }
