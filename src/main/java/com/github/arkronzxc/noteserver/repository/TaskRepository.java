@@ -15,13 +15,13 @@ public class TaskRepository extends CommonRepository {
         super("tasks");
         Timer time = new Timer();
         Scheduler scheduler = new Scheduler(collection);
-        time.schedule(scheduler, 60000);
+        time.schedule(scheduler, 60000) ;
     }
 
     @Override
     public String insert(Request req, Response res) {
         Document document = new Document();
-        if (getTaskByName(req.params(":name")) != null) {
+        if (getDocumentByName(req.params(":name"), req.headers("Authorization")) != null) {
             res.status(400);
             return "You can't duplicate task's names. Such as: " + req.params(":name") + "!";
         }
@@ -34,6 +34,7 @@ public class TaskRepository extends CommonRepository {
             dateTime = LocalDateTime.parse(time, formatter);
         }
 
+        document.put("user_id", req.headers("Authorization"));
         document.put("name", req.params(":name"));
         document.put("time", dateTime);
         document.put("text", req.body());
@@ -45,7 +46,7 @@ public class TaskRepository extends CommonRepository {
 
     @Override
     public String get(Request req, Response res) {
-        Document document = getTaskByName(req.params(":name"));
+        Document document = getDocumentByName(req.params(":name"), req.headers("Authorization"));
         if (document != null) {
             document.remove("_id");
             return document.toJson();
@@ -53,9 +54,5 @@ public class TaskRepository extends CommonRepository {
             res.status(404);
             return "Task with name " + req.params(":name") + " not found!";
         }
-    }
-
-    private Document getTaskByName(String documentName) {
-        return collection.find(Filters.eq("name", documentName)).first();
     }
 }

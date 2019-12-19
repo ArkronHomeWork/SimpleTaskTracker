@@ -16,6 +16,7 @@ import java.io.*;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class DocRepository extends CommonRepository {
@@ -30,20 +31,19 @@ public class DocRepository extends CommonRepository {
     }
 
     @Override
-    public String insert(Request request, Response res) {
-        request.attribute("org.eclipse.jetty.multipartConfig", new MultipartConfigElement("C:/tmp"));
+    public String insert(Request req, Response res) {
+        req.attribute("org.eclipse.jetty.multipartConfig", new MultipartConfigElement("C:/tmp"));
         Collection<Part> filePart;
         try {
-            filePart = request.raw().getParts();
+            filePart = req.raw().getParts();
         } catch (IOException | ServletException e) {
             res.status(400);
-            log.info("Couldn't get file from request: {}", request);
+            log.info("Couldn't get file from request: {}", req);
             return "Uploading file is incorrect ";
         }
 
         //Если файл сохранился успешно, он преобразуется в null (54 строка)
         // , если файл сохранился с ошибкой преобразуем в Exception (49, 52 строки)
-        // :: = ссылка на метод
         // 56 строка: фильтр отбрасывает все объекты равные null(фильтрует их по условию)
         List<Exception> exceptionList = filePart.parallelStream().map(part -> {
             OutputStream outputStream;
@@ -51,10 +51,13 @@ public class DocRepository extends CommonRepository {
                 return new RuntimeException("File with the current name is already exists");
             }
             try (InputStream inputStream = part.getInputStream()) {
-                outputStream = new FileOutputStream("C:/tmp/" + part.getSubmittedFileName());
+                final String uid = UUID.randomUUID().toString();
+                outputStream = new FileOutputStream("C:/tmp/" + uid);
                 IOUtils.copy(inputStream, outputStream);
                 Document document = new Document();
+                document.put("user_id", req.headers("Authorization"));
                 document.put("name", part.getSubmittedFileName());
+                document.put("uid", uid);
                 collection.insertOne(document);
                 outputStream.close();
             } catch (Exception e) {
@@ -74,12 +77,15 @@ public class DocRepository extends CommonRepository {
 
     @Override
     public String get(Request req, Response res) {
-        String filename = req.params(":name");
+        String fileName = req.params(":name");
 
         try {
-            FileInputStream inputStream = new FileInputStream("C:/tmp/" + filename);  //read the file
+            Document fileDoc = getDocumentByName(fileName, req.headers("Authorization"));
+            FileInputStream inputStream = new FileInputStream("C:/tmp/" +
+                    fileDoc.getString("uid"));  //read the file
             HttpServletResponse response = res.raw();
-            response.setHeader("Content-Disposition", "attachment; filename=" + filename);
+            response.setHeader("Content-Disposition", "attachment; filename=" +
+                    fileDoc.getString("name"));
             try {
                 int c;
                 while ((c = inputStream.read()) != -1) {
@@ -92,7 +98,7 @@ public class DocRepository extends CommonRepository {
         } catch (IOException e) {
             log.info("IOException while getting file: ", e);
             res.status(404);
-            return "File with name " + filename + " wasn't found!";
+            return "File with name " + fileName + " wasn't found!";
         }
         res.status(200);
         return "";
@@ -101,8 +107,9 @@ public class DocRepository extends CommonRepository {
     @Override
     public String delete(Request req, Response res) {
         String fileName = req.params(":name");
-        collection.deleteOne(Filters.eq("name", fileName));
-        File file = new File("C:/tmp/" + fileName);
+        Document fileDoc = getDocumentByName(fileName, req.headers("Authorization"));
+        collection.deleteOne(fileDoc);
+        File file = new File("C:/tmp/" + fileDoc.getString("uid"));
         if (file.delete()) {
             res.status(202);
             return "";

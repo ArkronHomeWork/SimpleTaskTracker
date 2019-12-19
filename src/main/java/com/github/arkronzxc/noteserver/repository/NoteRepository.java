@@ -13,10 +13,11 @@ public class NoteRepository extends CommonRepository {
 
     @Override
     public String insert(Request req, Response res) {
-        if (getDocumentByName(req.params(":name")) != null) {
+        if (getDocumentByName(req.params(":name"), req.headers("Authorization")) != null) {
             updateByName(req, res);
         } else {
             Document document = new Document();
+            document.put("user_id", req.headers("Authorization"));
             document.put("name", req.params(":name"));
             document.put("text", req.body());
             collection.insertOne(document);
@@ -27,7 +28,7 @@ public class NoteRepository extends CommonRepository {
 
     @Override
     public String get(Request req, Response res) {
-        Document document = getDocumentByName(req.params(":name"));
+        Document document = getDocumentByName(req.params(":name"), req.headers("Authorization"));
         if (document == null) {
             res.status(404);
             return "Note " + req.params(":name") + " wasn't found";
@@ -37,7 +38,7 @@ public class NoteRepository extends CommonRepository {
     }
 
     private void updateByName(Request req, Response res) {
-        Document setData = getDocumentByName(req.params(":name"));
+        Document setData = getDocumentByName(req.params(":name"), req.headers("Authorization"));
         String currentText = setData.getString("text");
         currentText = currentText + "\n" + req.body();
         setData.put("name", req.params(":name"));
