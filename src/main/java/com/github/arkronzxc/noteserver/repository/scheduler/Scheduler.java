@@ -12,12 +12,16 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.TimerTask;
 import java.util.function.Consumer;
+import java.util.logging.Filter;
 
 public class Scheduler extends TimerTask {
+    private final ZoneId zid = ZoneId.of("Europe/Moscow");
     private final Gson gson = new Gson();
     private final MongoCollection<Document> collection;
     private final HttpClient httpClient = HttpClient.newBuilder()
@@ -37,7 +41,11 @@ public class Scheduler extends TimerTask {
             list.add(document);
         };
 
-        collection.find(Filters.in("time", LocalDateTime.now(), LocalDateTime.now().plusMinutes(1L)))
+        collection.find(Filters.and(
+                Filters.gte("time",
+                        Date.from(LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant())),
+                Filters.lt("time",
+                        Date.from(LocalDateTime.now().plusMinutes(1L).atZone(ZoneId.systemDefault()).toInstant()))))
                 .forEach(consumer);
 
         HttpRequest request = HttpRequest.newBuilder()
