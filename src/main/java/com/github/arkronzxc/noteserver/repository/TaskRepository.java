@@ -1,13 +1,14 @@
 package com.github.arkronzxc.noteserver.repository;
 
 import com.github.arkronzxc.noteserver.repository.scheduler.Scheduler;
-import com.mongodb.client.model.Filters;
 import org.bson.Document;
 import spark.Request;
 import spark.Response;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.Date;
 import java.util.Timer;
 
 public class TaskRepository extends CommonRepository {
@@ -15,9 +16,10 @@ public class TaskRepository extends CommonRepository {
         super("tasks");
         Timer time = new Timer();
         Scheduler scheduler = new Scheduler(collection);
-        time.schedule(scheduler, 60000) ;
+        time.schedule(scheduler, 0, 60000);
     }
 
+    @SuppressWarnings("DuplicatedCode")
     @Override
     public String insert(Request req, Response res) {
         Document document = new Document();
@@ -36,7 +38,7 @@ public class TaskRepository extends CommonRepository {
 
         document.put("user_id", req.headers("Authorization"));
         document.put("name", req.params(":name"));
-        document.put("time", dateTime);
+        document.put("time", Date.from(dateTime.atZone(ZoneId.systemDefault()).toInstant()));
         document.put("text", req.body());
 
         collection.insertOne(document);
